@@ -83,7 +83,7 @@
       if (!char) return null;
 
       const fileName = cleanPath.split("/").slice(2).join("/");
-      const url = GITHUB_RAW_BASE + "chars/" + char.id + "/" + fileName;
+      const url = GITHUB_RAW_BASE + "chars/" + encodeURIComponent(char.id) + "/" + encodeURIComponent(fileName);
       console.log(`[assets-cdn] Fetching ${char.id}/${fileName}`);
       return await fetchAsset(url);
     }
@@ -99,27 +99,36 @@
   }
 
   // Generate a select.def that lists all available characters and stages
+  // Format: just the character directory name (engine looks for chars/<name>/<name>.def)
   function generateSelectDef() {
+    const stages = manifest.stages || [];
+    const firstStageDef = stages.length > 0
+      ? (stages[0].files.find(f => f.endsWith(".def")) || stages[0].id)
+      : "stage0-720.def";
+
     let lines = "";
     lines += "; Auto-generated select.def from Assets manifest\n";
     lines += "; Do not edit — regenerated on each boot\n\n";
-    lines += "[Options]\n";
-    lines += "arcade.maxmatches = 1,0,0,0,0,0,0,0,0,0\n";
-    lines += "team.maxmatches = 1,0,0,0,0,0,0,0,0,0\n";
-    lines += "survival.maxmatches = 1,0,0,0,0,0,0,0,0,0\n\n";
     lines += "[Characters]\n";
 
     for (const c of manifest.characters || []) {
-      // Use the character's .def file path relative to chars/
-      const defFile = c.files.find(f => f.endsWith(".def")) || (c.id + ".def");
-      lines += `${c.id}/${defFile}, stages/${(manifest.stages || [])[0]?.id || "stage0.def"}\n`;
+      // select.def format: <dirname>, stages/<stage.def>
+      // The engine resolves this to chars/<dirname>/<dirname>.def
+      lines += `${c.id}, stages/${firstStageDef}\n`;
     }
 
     lines += "\n[ExtraStages]\n";
-    for (const s of manifest.stages || []) {
+    // Always include the bundled default stage first
+    lines += "stages/stage0-720.def\n";
+    for (const s of stages) {
       const defFile = s.files.find(f => f.endsWith(".def")) || s.id;
       lines += `stages/${defFile}\n`;
     }
+
+    lines += "\n[Options]\n";
+    lines += "arcade.maxmatches = 1,0,0,0,0,0,0,0,0,0\n";
+    lines += "team.maxmatches = 1,0,0,0,0,0,0,0,0,0\n";
+    lines += "survival.maxmatches = -1,0,0,0,0,0,0,0,0,0\n";
 
     return lines;
   }
