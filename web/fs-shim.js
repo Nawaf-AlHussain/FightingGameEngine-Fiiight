@@ -528,6 +528,12 @@
                         }
                 }),
 
+                // Synchronous write — used by assets-cdn to inject select.def
+                writeFileSync(path, data) {
+                        writeFileAt(path, data, false);
+                        return null;
+                },
+
                 mkdir: cbWrap((path, perm) => {
                         const r = lookup(path);
                         if (r.notDir) throw errnoError("ENOTDIR", path);
