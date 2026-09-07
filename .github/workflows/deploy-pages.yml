@@ -1,0 +1,52 @@
+# Build the browser port and publish web/ to the gh-pages branch.
+#
+# Creating/updating a gh-pages branch is the classic Pages flow and usually
+# activates Pages automatically. If the site 404s after the first green run,
+# flip it once by hand: Settings -> Pages -> Build and deployment ->
+# Source: "Deploy from a branch" -> Branch: gh-pages / (root).
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# One deployment at a time; don't cancel a deploy already in flight.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache-dependency-path: engine/go.sum
+
+      - name: Build wasm + content bundle
+        run: bash build/wasm.sh
+
+      # Test harnesses (screenshots, test wasm binaries) don't belong on the
+      # deployed site.
+      - name: Prune test harnesses from site
+        run: rm -rf web/test
+
+      - name: Push site to gh-pages
+        run: |
+          cd web
+          touch .nojekyll
+          git init -b gh-pages
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Deploy site from ${GITHUB_SHA}"
+          git push --force "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

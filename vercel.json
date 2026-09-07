@@ -1,0 +1,26 @@
+{
+  "buildCommand": "echo 'No build needed — static files in web/'",
+  "outputDirectory": "web",
+  "headers": [
+    {
+      "source": "/(.*)\\.wasm$",
+      "headers": [
+        { "key": "Content-Type", "value": "application/wasm" },
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/(.*).js$",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" }
+      ]
+    },
+    {
+      "source": "/content.zip",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache" },
+        { "key": "Accept-Ranges", "value": "bytes" }
+      ]
+    }
+  ]
+}
