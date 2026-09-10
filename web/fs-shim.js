@@ -461,16 +461,33 @@
                                 if (window.__assetsCDN && window.__assetsCDN.isAssetPath(path)) {
                                         const cleanPath = path.replace(/^\/ikemen\//, "").replace(/^\//, "");
                                         const parts = cleanPath.split("/");
+                                        // chars/<id> — directory stat
                                         if (parts[0] === "chars" && parts.length === 2) {
                                                 const chars = window.__assetsCDN.getCharacters();
                                                 if (chars.find(c => c.id === parts[1])) {
                                                         return statFor(makeDir());
                                                 }
                                         }
+                                        // chars/<id>/<file> — file stat (pretend the file exists)
+                                        if (parts[0] === "chars" && parts.length >= 3) {
+                                                const chars = window.__assetsCDN.getCharacters();
+                                                const char = chars.find(c => c.id === parts[1]);
+                                                if (char) {
+                                                        // Return a fake file stat with non-zero size so the engine tries to open it
+                                                        return statFor(makeFile(new Uint8Array(1)));
+                                                }
+                                        }
+                                        // stages/<file> — file stat
                                         if (parts[0] === "stages" && parts.length === 2) {
                                                 const stages = window.__assetsCDN.getStages();
                                                 if (stages.find(s => s.files && s.files.includes(parts[1]))) {
-                                                        return statFor(makeFile(new Uint8Array(0)));
+                                                        return statFor(makeFile(new Uint8Array(1)));
+                                                }
+                                                // Also check if any stage has this file
+                                                for (const s of stages) {
+                                                        if (s.files && s.files.includes(parts[1])) {
+                                                                return statFor(makeFile(new Uint8Array(1)));
+                                                        }
                                                 }
                                         }
                                 }
@@ -490,10 +507,19 @@
                                                         return statFor(makeDir());
                                                 }
                                         }
+                                        if (parts[0] === "chars" && parts.length >= 3) {
+                                                const chars = window.__assetsCDN.getCharacters();
+                                                const char = chars.find(c => c.id === parts[1]);
+                                                if (char) {
+                                                        return statFor(makeFile(new Uint8Array(1)));
+                                                }
+                                        }
                                         if (parts[0] === "stages" && parts.length === 2) {
                                                 const stages = window.__assetsCDN.getStages();
-                                                if (stages.find(s => s.files && s.files.includes(parts[1]))) {
-                                                        return statFor(makeFile(new Uint8Array(0)));
+                                                for (const s of stages) {
+                                                        if (s.files && s.files.includes(parts[1])) {
+                                                                return statFor(makeFile(new Uint8Array(1)));
+                                                        }
                                                 }
                                         }
                                 }
